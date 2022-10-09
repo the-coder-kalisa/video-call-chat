@@ -1,26 +1,25 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import { FC, useEffect } from "react";
+import { useSetRecoilState } from "recoil";
+import { selectedNav } from "./atom";
+import LeftSide from "./components/LeftSide";
+import Navigation from "./components/Navigation";
+import RightSide from "./components/RightSide";
 
-function App() {
+const App: FC = () => {
+  const setSelectedNav = useSetRecoilState(selectedNav)
+  useEffect(() => {
+    return () => {
+      setSelectedNav("home")
+    }
+  },[])
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div>
+      <Navigation />
+      <div className="flex justify-center w-full pt-32">
+        <LeftSide />
+        <RightSide /> 
+      </div>
     </div>
   );
-}
-
+};
 export default App;
