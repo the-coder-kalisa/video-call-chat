@@ -1,5 +1,5 @@
 import React from "react";
-import Navigation from "../../my-app/src/components/Navigation";
+import Navigation from "./components/Navigation";
 
 function Notfound() {
   return (
