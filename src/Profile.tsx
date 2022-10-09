@@ -1,4 +1,4 @@
-import Navigation from "../../my-app/src/components/Navigation";
+import Navigation from "./components/Navigation";
 import { useState, useEffect, Key } from "react";
 import { AccountCircleOutlined, ImageSharp } from "@mui/icons-material";
 import { Post, User } from "./types";
