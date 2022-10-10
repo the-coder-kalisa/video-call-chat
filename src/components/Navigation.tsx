@@ -4,7 +4,7 @@ import {
   Home,
   Notifications,
 } from "@mui/icons-material";
-import socket  from "../axios";
+import socket from "../axios";
 import { FC, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useRecoilState, useRecoilValue, useSetRecoilState } from "recoil";
@@ -20,16 +20,16 @@ const Navigation: FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const setUsers = useSetRecoilState<never[]>(Users);
   useEffect(() => {
-    return () => {
-      setLoading(true);
-      const token = localStorage.getItem("token");
-      socket.emit("user", token, (response: User) => {
-        if (!response) return navigate("/login");
-        setMyuser(response);
-        setLoading(false);
-        setLog(true);
-      });
-    };
+    setLoading(true);
+    const token = localStorage.getItem("token");
+    socket.emit("user", token, (response: User) => {
+      console.log(response);
+      console.log('emited')
+      if (!response) return navigate("/login");
+      setMyuser(response);
+      setLoading(false);
+      setLog(true);
+    });
   }, []);
 
   socket.off("active").on("active", (data: User[]) => {
