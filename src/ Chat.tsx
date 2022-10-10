@@ -148,12 +148,7 @@ function Chat() {
             setCallAppected(true);
             peer.signal(signal);
           });
-          socket.off("call-ended").on("call-ended", () => {
 
-            setCallAppected(false);
-            setOpen(false);
-            peer.destroy();
-          })
           if (connnectionRef.current) connnectionRef.current = peer;
         }
       });
@@ -183,6 +178,12 @@ function Chat() {
         if (connnectionRef.current) connnectionRef.current = peer;
       });
   };
+  socket.off("call-ended").on("call-ended", () => {
+    console.log("ended")
+    setCallEnded(true);
+    setOpen(false);
+    if (connnectionRef.current) connnectionRef.current.destroy();
+  });
   const leaveCall = () => {
     setCallEnded(true);
     setOpen(false);
