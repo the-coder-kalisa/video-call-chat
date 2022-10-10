@@ -20,7 +20,6 @@ const Navigation: FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const setUsers = useSetRecoilState<never[]>(Users);
   useEffect(() => {
-    return () => {
       const token = localStorage.getItem("token");
       socket.emit("user", token, (response: User) => {
         console.log(response);
@@ -30,7 +29,7 @@ const Navigation: FC = () => {
         setLoading(false);
         setLog(true);
       });
-    };
+    
   }, []);
 
   socket.off("active").on("active", (data: User[]) => {
