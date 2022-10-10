@@ -2,6 +2,7 @@ import {
   AccountCircleOutlined,
   Audiotrack,
   Circle,
+  Close,
   Group,
   InsertEmoticon,
   Send,
@@ -182,15 +183,11 @@ function Chat() {
       });
   };
   socket.off("call-ended").on("call-ended", () => {
-    console.log("ended");
-    setCallEnded(true);
     setOpen(false);
     if (connnectionRef.current) connnectionRef.current.destroy();
   });
   const leaveCall = () => {
     setCallEnded(true);
-    setOpen(false);
-    if (connnectionRef.current) connnectionRef.current.destroy();
     if (!contact) {
       socket.emit("ended-call", { to: selectedUser?._id });
     } else {
@@ -204,12 +201,22 @@ function Chat() {
         className="z-50 relative flex items-center justify-center"
         open={open}
       >
+        <div className="absolute right-5 top-5">
+          <Close />
+        </div>
         {!callAccepted ? (
           <div className="flex items-center gap-3 flex-col">
             <div className="font-bold text-2xl text-white">
               Calling {selectedUser?.username}
             </div>
-            <Button onClick={leaveCall} variant="contained" sx={{ width: 100 }}>
+            <Button
+              onClick={() => {
+                leaveCall();
+                setOpen(false)
+              }}
+              variant="contained"
+              sx={{ width: 100 }}
+            >
               Hung up
             </Button>
           </div>
