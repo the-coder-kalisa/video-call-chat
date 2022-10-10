@@ -16,20 +16,22 @@ const Navigation: FC = () => {
   const navigate = useNavigate();
   const activeNav = useRecoilValue<string>(selectedNav);
   const [myuser, setMyuser] = useRecoilState<User>(user);
-  const setLog = useSetRecoilState(logedIn);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [log, setLog] = useRecoilState(logedIn);
+  const [loading, setLoading] = useState<boolean>(false);
   const setUsers = useSetRecoilState<never[]>(Users);
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    socket.emit("user", token, (response: User) => {
-      console.log(response);
-      console.log("emited");
-      if (!response) return navigate("/login");
-      setMyuser(response);
-      setLoading(false);
-      setLog(true);
-    });
-  }, []);
+    if (!log) {
+      setLoading(true);
+      const token = localStorage.getItem("token");
+      socket.emit("user", token, (response: User) => {
+        if (!response) return navigate("/login");
+        setMyuser(response);
+        setLoading(false);
+
+        setLog(true);
+      });
+    }
+  }, [log]);
 
   socket.off("active").on("active", (data: User[]) => {
     setUsers(data as never[]);

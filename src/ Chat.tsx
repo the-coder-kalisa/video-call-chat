@@ -148,14 +148,22 @@ function Chat() {
             setCallAppected(true);
             peer.signal(signal);
           });
+          socket.off("call-ended").on("call-ended", () => {
+
+            setCallAppected(false);
+            setOpen(false);
+            peer.destroy();
+          })
           if (connnectionRef.current) connnectionRef.current = peer;
         }
       });
   };
   const [callAccepted, setCallAppected] = useState<boolean>(false);
   const [callEnded, setCallEnded] = useState<boolean>(false);
+  const [contact, setContact] = useState<string | null>(null);
   const answerCall = (from: string) => {
     setOpen(true);
+    setContact(from);
     setCallAppected(true);
     navigator.mediaDevices
       .getUserMedia({ audio: true, video: true })
@@ -177,7 +185,13 @@ function Chat() {
   };
   const leaveCall = () => {
     setCallEnded(true);
+    setOpen(true);
     if (connnectionRef.current) connnectionRef.current.destroy();
+    if (!contact) {
+      socket.emit("ended-call", { to: selectedUser?._id });
+    } else {
+      socket.emit("ended-call", { to: contact });
+    }
   };
   return (
     <div>
@@ -187,11 +201,26 @@ function Chat() {
         open={open}
       >
         {!callAccepted ? (
-          <div className="font-bold text-2xl text-white">
-            Calling {selectedUser?.username}
+          <div className="flex items-center gap-3 flex-col">
+            <div className="font-bold text-2xl text-white">
+              Calling {selectedUser?.username}
+            </div>
+            <Button onClick={leaveCall} variant="contained" sx={{ width: 100 }}>
+              Hung up
+            </Button>
           </div>
         ) : !callEnded ? (
-          <video ref={userVideo} playsInline autoPlay></video>
+          <div className="flex flex-col items-center gap-3">
+            <video
+              ref={userVideo}
+              className="w-[70rem]"
+              playsInline
+              autoPlay
+            ></video>
+            <Button onClick={leaveCall} variant="contained" sx={{ width: 100 }}>
+              Hung up
+            </Button>
+          </div>
         ) : (
           <div>call ended</div>
         )}
@@ -307,6 +336,7 @@ function Chat() {
                   </div>
                 </div>
                 <div className=" font-medium">{user.username}</div>
+                {user._id === User._id && <div>(you)</div>}
               </div>
             ))}
           </div>
