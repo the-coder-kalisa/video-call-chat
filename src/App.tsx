@@ -6,18 +6,16 @@ import Navigation from "./components/Navigation";
 import RightSide from "./components/RightSide";
 
 const App: FC = () => {
-  const setSelectedNav = useSetRecoilState(selectedNav)
+  const setSelectedNav = useSetRecoilState(selectedNav);
   useEffect(() => {
-    return () => {
-      setSelectedNav("home")
-    }
-  },[])
+    setSelectedNav("home");
+  }, []);
   return (
     <div>
       <Navigation />
       <div className="flex justify-center w-full pt-32">
         <LeftSide />
-        <RightSide /> 
+        <RightSide />
       </div>
     </div>
   );

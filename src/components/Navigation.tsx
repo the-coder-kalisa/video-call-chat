@@ -20,16 +20,15 @@ const Navigation: FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const setUsers = useSetRecoilState<never[]>(Users);
   useEffect(() => {
-      const token = localStorage.getItem("token");
-      socket.emit("user", token, (response: User) => {
-        console.log(response);
-        console.log("emited");
-        if (!response) return navigate("/login");
-        setMyuser(response);
-        setLoading(false);
-        setLog(true);
-      });
-    
+    const token = localStorage.getItem("token");
+    socket.emit("user", token, (response: User) => {
+      console.log(response);
+      console.log("emited");
+      if (!response) return navigate("/login");
+      setMyuser(response);
+      setLoading(false);
+      setLog(true);
+    });
   }, []);
 
   socket.off("active").on("active", (data: User[]) => {
