@@ -17,10 +17,9 @@ const Navigation: FC = () => {
   const activeNav = useRecoilValue<string>(selectedNav);
   const [myuser, setMyuser] = useRecoilState<User>(user);
   const setLog = useSetRecoilState(logedIn);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
   const setUsers = useSetRecoilState<never[]>(Users);
   useEffect(() => {
-    setLoading(true);
     const token = localStorage.getItem("token");
     socket.emit("user", token, (response: User) => {
       console.log(response);
