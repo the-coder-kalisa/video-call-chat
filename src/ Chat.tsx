@@ -185,7 +185,7 @@ function Chat() {
   };
   const leaveCall = () => {
     setCallEnded(true);
-    setOpen(true);
+    setOpen(false);
     if (connnectionRef.current) connnectionRef.current.destroy();
     if (!contact) {
       socket.emit("ended-call", { to: selectedUser?._id });
