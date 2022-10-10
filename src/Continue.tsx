@@ -19,27 +19,25 @@ const Continue: FC = () => {
   const token = useSearchParams()[0].get("token");
   const [loadings, setLoadings] = useState<boolean>(true);
   useEffect(() => {
-    return () => {
-      setLoadings(true);
-      socket.emit(
-        "create-user",
-        token,
-        (response: {
-          status: boolean;
-          message: string;
-          token: string;
-          username: string;
-        }) => {
-          setLoadings(false);
-          if (!response.status) {
-            setError(response.message);
-          } else {
-            localStorage.setItem("token", response.token);
-            setUsername(response.username);
-          }
+    setLoadings(true);
+    socket.emit(
+      "create-user",
+      token,
+      (response: {
+        status: boolean;
+        message: string;
+        token: string;
+        username: string;
+      }) => {
+        setLoadings(false);
+        if (!response.status) {
+          setError(response.message);
+        } else {
+          localStorage.setItem("token", response.token);
+          setUsername(response.username);
         }
-      );
-    };
+      }
+    );
   }, []);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const formSubmit = async (e: FormEvent<HTMLElement>) => {
@@ -56,14 +54,18 @@ const Continue: FC = () => {
       }
     );
     const urlData: { url: string } = await res.json();
-    socket.emit("update", {profile: urlData.url, username, updater: "username"}, (response: any) => {
-      if (response === "updated") {
-        navigate("/");
-      } else {
-        setError(response); 
+    socket.emit(
+      "update",
+      { profile: urlData.url, username, updater: "username" },
+      (response: any) => {
+        if (response === "updated") {
+          navigate("/");
+        } else {
+          setError(response);
+        }
+        setLoading(false);
       }
-      setLoading(false);
-    });
+    );
   };
   const [fileToUpload, setFileToUpload] = useState<FileList | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
