@@ -22,12 +22,10 @@ function Profile() {
   const setSelectedNav = useSetRecoilState(selectedNav);
 
   useEffect(() => {
-    return () => {
-      setSelectedNav("");
-      socket.emit("user-return", username, (response: any) => {
-        setUser(response);
-      });
-    };
+    setSelectedNav("");
+    socket.emit("user-return", username, (response: any) => {
+      setUser(response);
+    });
   }, []);
   return (
     <div>

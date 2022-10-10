@@ -9,12 +9,10 @@ const Logout: FC = () => {
   const navigate = useNavigate();
   const setLog = useSetRecoilState(logedIn);
   useEffect(() => {
-    return () => {
-      setLog(false);
-      socket.emit("forceDisconnect");
-      localStorage.removeItem("token");
-      navigate("/login");
-    };
+    setLog(false);
+    socket.emit("forceDisconnect");
+    localStorage.removeItem("token");
+    navigate("/login");
   }, []);
   return (
     <div className="flex items-center justify-center w-full h-screen">

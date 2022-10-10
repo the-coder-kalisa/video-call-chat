@@ -89,11 +89,9 @@ function RightSide() {
     setPosts(postss);
   });
   useEffect(() => {
-    return () => {
-      socket.emit("posts", (response: any) => {
-        setPosts(response);
-      });
-    };
+    socket.emit("posts", (response: any) => {
+      setPosts(response);
+    });
   }, []);
   socket.off("got-posts").on("got-posts", (data) => {
     setPosts(data);

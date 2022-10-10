@@ -28,9 +28,7 @@ function Chat() {
   };
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   useEffect(() => {
-    return () => {
-      setSelectedNav("message");
-    };
+    setSelectedNav("message");
   }, []);
   const [room, setRoom] = useState<string>("");
   const order_ids = (id1: string, id2: string): string => {
@@ -129,8 +127,8 @@ function Chat() {
   const goToVideoCall = () => {
     setOpen(true);
     navigator.mediaDevices
-    .getUserMedia({ audio: true, video: true })
-    .then((stream) => {
+      .getUserMedia({ audio: true, video: true })
+      .then((stream) => {
         const peer = new Peer({ initiator: true, trickle: false, stream });
         if (callerVideo.current) {
           callerVideo.current.srcObject = stream;
@@ -148,8 +146,8 @@ function Chat() {
           });
           socket.on("call-accepted", (signal) => {
             setCallAppected(true);
-            peer.signal(signal)
-          })
+            peer.signal(signal);
+          });
           if (connnectionRef.current) connnectionRef.current = peer;
         }
       });
