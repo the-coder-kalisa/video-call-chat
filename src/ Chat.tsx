@@ -5,7 +5,6 @@ import {
   Group,
   InsertEmoticon,
   Send,
-  SmsFailed,
   VideoCall,
 } from "@mui/icons-material";
 import { Backdrop, Button, IconButton } from "@mui/material";
@@ -115,6 +114,10 @@ function Chat() {
   socket
     .off("call-user")
     .on("call-user", ({ from, signal }: { from: string; signal: any }) => {
+      let user: User | undefined = users.find(
+        (value: User) => value._id === from
+      );
+      document.title = user!.username + " is calling you";
       setCalling([...calling, from]);
       setCall([...call, { isRecieved: true, from, signal }]);
     });
@@ -179,7 +182,7 @@ function Chat() {
       });
   };
   socket.off("call-ended").on("call-ended", () => {
-    console.log("ended")
+    console.log("ended");
     setCallEnded(true);
     setOpen(false);
     if (connnectionRef.current) connnectionRef.current.destroy();
