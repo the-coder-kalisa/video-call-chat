@@ -4,10 +4,17 @@ export interface User {
   email?: string;
   profile?: string;
   followers: string[];
-following: string[];
-chating: string[];
-posts: string[];
+  following: string[];
+  chating: string[];
+  posts: string[];
   _id?: string;
+  calls: {
+    createdAt: string;
+    from: string;
+    to: string;
+    time?: string;
+    _id: string;
+  }[];
   status?: boolean;
 }
 

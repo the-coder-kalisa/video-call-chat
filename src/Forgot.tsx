@@ -1,20 +1,16 @@
 import { Alert, Button, LinearProgress } from "@mui/material";
-import { AxiosResponse } from "axios";
-import React, { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Shake from "react-reveal/Shake";
-import axios from "./axios";
 function Forgot() {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
-  const inputs = ["Email or username", "Password"];
+  const inputs = ["Email or username"];
   const [values, setValues] = useState<{
-    email_username: string;
-    password: string;
+    email: string;
   } | null>(null);
   const validation = async (): Promise<string | boolean> => {
-    if (!values?.email_username) return "Enter your email or username";
-    if (!values.password) return "Enter your password";
+    if (!values?.email) return "Enter your email or username";
     return true;
   };
   const [shakes, setShakes] = useState<boolean>(false);
@@ -22,7 +18,7 @@ function Forgot() {
     setTimeout(() => {
       setShakes(!shakes);
     }, 2);
-  }, [error]);
+  }, [error, shakes]);
   const [loading, setLoading] = useState<boolean>(false);
   const formSubmit = async (e: FormEvent<HTMLElement>) => {
     e.preventDefault();
@@ -30,7 +26,6 @@ function Forgot() {
       const validated = await validation();
       if (typeof validated === "boolean") {
         setLoading(true);
-        const { email_username, password } = values!;
         // post
         // localStorage.setItem("token", token);
         navigate("/");
@@ -57,10 +52,11 @@ function Forgot() {
             <LinearProgress />
           </div>
         )}
-        <h1 className="text-white text-xl font-semibold">Login to coders</h1>
+        <h1 className="text-white text-xl font-semibold">
+          Forgot your password
+        </h1>
         {error && (
           <Shake spy={shakes}>
-            {" "}
             <Alert severity="error" className="w-[20rem]">
               {error}
             </Alert>
@@ -74,9 +70,8 @@ function Forgot() {
               onChange={(e) => {
                 setValues({
                   ...values!,
-                  [input === "Email or username"
-                    ? "email_username"
-                    : input.toLocaleLowerCase()]: e.target.value,
+                  [input === "Email..." ? "email" : input.toLocaleLowerCase()]:
+                    e.target.value,
                 });
               }}
               key={index}
@@ -85,19 +80,19 @@ function Forgot() {
           </div>
         ))}
         <Button variant="contained" type="submit">
-          Login
+          Send Link
         </Button>
-        <Link
-          to="/forgot"
-          className="text-white hover:text-blue-400 cursor-pointer"
-        >
-          Forgot Password?
-        </Link>
-        <div className="text-white">
-          Don't have an account{" "}
-          <Link to="/signup" className=" text-[#2ce253] hover:text-blue-400">
+
+        <div className="text-white items-end w-full flex flex-col">
+          <div>
+
+          <Link to="/signup" className=" text-[#0f0f46] hover:text-[#20207e]">
             signup
           </Link>
+          <Link to="/login" className=" text-[#0f0f44] hover:text-[#20207e]">
+            login
+          </Link>
+          </div>
         </div>
       </form>
     </div>

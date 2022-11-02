@@ -12,7 +12,7 @@ import { Backdrop, Button, IconButton } from "@mui/material";
 import Picker, { EmojiClickData } from "emoji-picker-react";
 import React, { FormEvent, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { useRecoilValue, useSetRecoilState } from "recoil";
+import { useRecoilState, useRecoilValue, useSetRecoilState } from "recoil";
 import { selectedNav, user, Users } from "./atom";
 import Navigation from "./components/Navigation";
 import { User } from "./types";
@@ -21,7 +21,7 @@ import Peer from "simple-peer";
 function Chat() {
   const setSelectedNav = useSetRecoilState(selectedNav);
   const users = useRecoilValue(Users);
-  const User = useRecoilValue(user);
+  const [User, setUser] = useRecoilState<User>(user);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const handleEmojiPicker = () => {
     setShowEmojiPicker(!showEmojiPicker);
@@ -94,7 +94,7 @@ function Chat() {
   const defaultRooms = ["General", "announcement"];
   socket.off("another-message").on("another-message", (messages) => {
     setMessages(messages);
-    // if (messageDiv.current) messageDiv.current.scrollIntoView;
+    if (messageDiv.current) messageDiv.current.scrollIntoView();
   });
   const messageDiv = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
@@ -105,36 +105,58 @@ function Chat() {
   const connnectionRef = useRef<Peer.Instance | null>(null);
   const [call, setCall] = useState<
     {
+      _id: string;
       isRecieved: boolean;
       from: string;
       signal: any;
     }[]
   >([]);
   const callerVideo = useRef<HTMLVideoElement | null>(null);
-  const [calling, setCalling] = useState<string[]>([]);
+  const findIndexinUsers = (id: string) => {
+    let someUsers: User[] = [...users];
+    return someUsers.findIndex((value) => value._id === id);
+  };
   socket
-    .off("call-user")
-    .on("call-user", ({ from, signal }: { from: string; signal: any }) => {
-      let user: User | undefined = users.find(
-        (value: User) => value._id === from
-      );
-      document.title = user!.username + " is calling you";
-      setCalling([...calling, from]);
-      setCall([...call, { isRecieved: true, from, signal }]);
-    });
-  const [showAllCalls, setShowAllCalls] = useState<boolean>(false);
-  useEffect(() => {
-    if (calling.length > 0) {
-      setShowAllCalls(true);
-    }
-  }, [calling]);
+    .off("calling-room")
+    .on(
+      "calling-room",
+      ({
+        user,
+        from,
+        signal,
+        _id,
+      }: {
+        user: User;
+        from: string;
+        signal: any;
+        _id: string;
+      }) => {
+        setCallEnded(false);
+        let user1index = findIndexinUsers(from!);
+        if (user._id === User._id) {
+          setUser(user);
+        }
+        let user1: User = users[user1index];
+        document.title =
+          user1._id === User._id
+            ? user1.username + " is calling you"
+            : "you're calling";
+        setCall([...call, { isRecieved: true, from, signal, _id }]);
+      }
+    );
+  var [firstTime, setFirstTime] = useState<number>(0);
+  const [stopCounting, setStopCounting] = useState<boolean>(false);
+  const [stream, setStream] = useState<MediaStream | null>(null);
   const goToVideoCall = () => {
     setOpen(true);
     navigator.mediaDevices
       .getUserMedia({ audio: true, video: true })
       .then((stream) => {
+        setCallEnded(false);
+        setCallAppected(false);
         const peer = new Peer({ initiator: true, trickle: false, stream });
         if (callerVideo.current) {
+          setStream(stream);
           callerVideo.current.srcObject = stream;
           peer.on("signal", (data) => {
             socket.emit("call-user", {
@@ -144,55 +166,90 @@ function Chat() {
             });
           });
           peer.on("stream", (currentStream) => {
+            console.log(currentStream);
             if (userVideo.current) {
               userVideo.current.srcObject = currentStream;
             }
           });
+          // let stop = false;
+          // if (!stopCounting || !  stop) {
+          //   setInterval(() => {
+          //     console.log(!stop)
+          //     if (!stop || !stopCounting) {
+          //       firstTime++;
+          //       setFirstTime(firstTime);
+          //     }
+          //   }, 1000);
+          // } else {
+          //   setFirstTime(0);
+          // }
           socket.on("call-accepted", (signal) => {
+            console.log(signal);
+            // stop = true;
+            // setStopCounting(true);
+            // setCallEnded(false);
             setCallAppected(true);
+            // setOnCall(true);
             peer.signal(signal);
+            if (connnectionRef.current) connnectionRef.current = peer;
           });
-
-          if (connnectionRef.current) connnectionRef.current = peer;
         }
       });
   };
   const [callAccepted, setCallAppected] = useState<boolean>(false);
   const [callEnded, setCallEnded] = useState<boolean>(false);
+  socket.off("immed-hang-up").on("immed-hang-up", (data) => {
+    console.log(data);
+  });
+  useEffect(() => {
+    console.log(firstTime);
+  }, [firstTime]);
   const [contact, setContact] = useState<string | null>(null);
-  const answerCall = (from: string) => {
+  const answerCall = (id: string, from: string) => {
     setOpen(true);
     setContact(from);
     setCallAppected(true);
+    setCallEnded(false);
     navigator.mediaDevices
       .getUserMedia({ audio: true, video: true })
       .then((stream) => {
+        console.log(stream);
         if (callerVideo.current) {
           callerVideo.current.srcObject = stream;
         }
-
+        setStream(stream);
         const peer = new Peer({ initiator: false, trickle: false, stream });
         peer.on("signal", (data) => {
           socket.emit("answer-call", { signal: data, to: from });
+          setOnCall(true);
         });
         peer.on("stream", (currentStream) => {
           if (userVideo.current) userVideo.current.srcObject = currentStream;
         });
-        peer.signal(call?.find((value) => value.from === from)?.signal);
+        peer.signal(call?.find((value) => value._id === id)?.signal);
         if (connnectionRef.current) connnectionRef.current = peer;
       });
   };
+  const [onCall, setOnCall] = useState<boolean>(false);
   socket.off("call-ended").on("call-ended", () => {
     setOpen(false);
+    stream?.getTracks().forEach((track) => track.stop());
     if (connnectionRef.current) connnectionRef.current.destroy();
   });
   const leaveCall = () => {
     setCallEnded(true);
+    setOpen(false);
+    stream?.getTracks().forEach((track) => track.stop());
+    if (connnectionRef.current) connnectionRef.current.destroy();
     if (!contact) {
       socket.emit("ended-call", { to: selectedUser?._id });
     } else {
       socket.emit("ended-call", { to: contact });
     }
+    setCallEnded(false);
+  };
+  const hangup = (id: string, from: string) => {
+    socket.emit("immed-hang-up", from);
   };
   return (
     <div>
@@ -201,7 +258,20 @@ function Chat() {
         className="z-50 relative flex items-center justify-center"
         open={open}
       >
-        <div className="absolute right-5 top-5">
+        <div
+          onClick={() => {
+            if (onCall) {
+              leaveCall();
+            } else {
+              setCallEnded(true);
+              setStopCounting(true);
+              setOpen(false);
+              stream?.getTracks().forEach((track) => track.stop());
+              if (connnectionRef.current) connnectionRef.current.destroy();
+            }
+          }}
+          className="absolute text-white cursor-pointer right-5 top-5"
+        >
           <Close />
         </div>
         {!callAccepted ? (
@@ -211,8 +281,11 @@ function Chat() {
             </div>
             <Button
               onClick={() => {
-                leaveCall();
-                setOpen(false)
+                setCallEnded(true);
+                setOpen(false);
+                setStopCounting(true);
+                stream?.getTracks().forEach((track) => track.stop());
+                if (connnectionRef.current) connnectionRef.current.destroy();
               }}
               variant="contained"
               sx={{ width: 100 }}
@@ -233,7 +306,7 @@ function Chat() {
             </Button>
           </div>
         ) : (
-          <div>call ended</div>
+          <div className="font-bold text-2xl text-white">call ended</div>
         )}
         <video
           ref={callerVideo}
@@ -242,39 +315,55 @@ function Chat() {
           autoPlay
         ></video>
       </Backdrop>
-      <div className="flex pl-20 pt-[10rem] justify-center">
+      <div className="flex pl-20 pt-[10rem] h-[52rem] justify-center">
         <div className="flex border w-[20rem] flex-col">
           <div className="border-b  p-5 text-lg font-bold">calls</div>
-          {showAllCalls && (
-            <div className="flex flex-col">
-              {calling.map((call, index) => {
-                let user: User | undefined = users.find(
-                  (value: User) => value._id === call
-                );
+          {User.calls && User.calls.length > 0 && (
+            <div className="flex flex-col overflow-auto p-2 gap-4">
+              {User.calls.map((call, index) => {
+                let userToIndex = findIndexinUsers(call.to);
+                let user: User | undefined =
+                  call.from !== User._id ? User : users[userToIndex];
                 return (
-                  <div
-                    className="flex justify-between items-center"
-                    key={index}
-                  >
-                    <div className="flex items-center">
-                      <div
-                        style={{ backgroundImage: `url(${user!.profile})` }}
-                        className="h-[3rem] rounded-full w-[3rem] bg-top bg-cover"
-                      ></div>
-                      <div className="flex flex-col">
-                        <div className="font-bold text-lg">
-                          {user!.username}
+                  user && (
+                    <div
+                      key={index}
+                      className="flex w-full justify-between items-center"
+                    >
+                      <div className="flex items-center gap-1">
+                        <div
+                          style={{ backgroundImage: `url(${user.profile})` }}
+                          className="h-[3rem] rounded-full w-[3rem] bg-cover bg-top"
+                        ></div>
+                        <div className="flex flex-col gap-1">
+                          <div className="font-bold text-lg">
+                            {user.username}
+                          </div>
+                          {call.time ? (
+                            <div>your call lasted{call.time}</div>
+                          ) : (
+                            <div>is calling you</div>
+                          )}
                         </div>
-                        <div>is calling you</div>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <Button
+                          onClick={() => answerCall(call._id, call.from)}
+                          variant="contained"
+                          className=""
+                        >
+                          Answer
+                        </Button>
+                        <Button
+                          onClick={() => hangup(call._id, call.from)}
+                          variant="contained"
+                          className=""
+                        >
+                          Hung up
+                        </Button>
                       </div>
                     </div>
-                    <Button
-                      onClick={() => answerCall(call)}
-                      variant="contained"
-                    >
-                      Answer call
-                    </Button>
-                  </div>
+                  )
                 );
               })}
             </div>
