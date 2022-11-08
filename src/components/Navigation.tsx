@@ -22,7 +22,7 @@ const Navigation: FC = () => {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
-      return  navigate("/login")
+      return navigate("/login");
     }
     if (!log) {
       setLoading(true);

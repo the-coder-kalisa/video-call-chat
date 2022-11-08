@@ -1,7 +1,7 @@
 import { CircularProgress } from "@mui/material";
 import { FC, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useRecoilState, useSetRecoilState } from "recoil";
+import { useSetRecoilState } from "recoil";
 import { logedIn } from "./atom";
 import socket from "./axios";
 

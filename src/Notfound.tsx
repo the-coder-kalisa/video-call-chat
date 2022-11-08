@@ -6,7 +6,7 @@ function Notfound() {
     <div>
       <Navigation />
       <div className="flex h-screen w-full items-center justify-center">
-        This page is not found  
+        This page is not found
       </div>
     </div>
   );

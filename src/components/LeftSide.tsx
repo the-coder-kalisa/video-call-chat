@@ -20,10 +20,9 @@ const LeftSide: FC = () => {
     socket.emit("update", { id, updater: "id" }, (response: any) => {
       setOpen(true);
       if (response === "updated") {
-
-        setInfo({status: true, message: "You followed this user"})
-      }else {
-        setInfo({status: false, message: response})
+        setInfo({ status: true, message: "You followed this user" });
+      } else {
+        setInfo({ status: false, message: response });
       }
     });
   };

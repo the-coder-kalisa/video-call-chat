@@ -25,10 +25,13 @@ const Login: FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const formSubmit = async (e: FormEvent<HTMLElement>) => {
     e.preventDefault();
-      const validated = await validation();
-      if (typeof validated === "boolean") {
-        setLoading(true);
-        socket.emit("login", values!, (response: {status: boolean, token: string, message: string}) => {
+    const validated = await validation();
+    if (typeof validated === "boolean") {
+      setLoading(true);
+      socket.emit(
+        "login",
+        values!,
+        (response: { status: boolean; token: string; message: string }) => {
           if (!response.status) {
             setLoading(false);
             setError(response.message);
@@ -38,11 +41,12 @@ const Login: FC = () => {
           localStorage.setItem("token", response.token);
           navigate("/");
           setLoading(false);
-        });
-      } else {
-        setShakes(!shakes);
-        setError(validated);
-      }
+        }
+      );
+    } else {
+      setShakes(!shakes);
+      setError(validated);
+    }
   };
   return (
     <div className="flex items-center w-full h-screen justify-center">

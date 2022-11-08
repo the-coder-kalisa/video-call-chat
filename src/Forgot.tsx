@@ -85,13 +85,12 @@ function Forgot() {
 
         <div className="text-white items-end w-full flex flex-col">
           <div>
-
-          <Link to="/signup" className=" text-[#0f0f46] hover:text-[#20207e]">
-            signup
-          </Link>
-          <Link to="/login" className=" text-[#0f0f44] hover:text-[#20207e]">
-            login
-          </Link>
+            <Link to="/signup" className=" text-[#0f0f46] hover:text-[#20207e]">
+              signup
+            </Link>
+            <Link to="/login" className=" text-[#0f0f44] hover:text-[#20207e]">
+              login
+            </Link>
           </div>
         </div>
       </form>
