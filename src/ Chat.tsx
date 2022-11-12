@@ -454,29 +454,29 @@ function Chat() {
                         ) : call.missed ? (
                           <div>missed</div>
                         ) : (
-                          <div className="flex items-start gap-1 flex-col">
-                            <Button
-                              style={{
-                                padding: 2,
-                                fontSize: 12,
-                                fontWeight: 400,
-                              }}
-                              variant="contained"
-                              onClick={() => answerCall(call._id, call.caller)}
-                            >
-                              Answer
-                            </Button>
-                            <Button
-                              style={{
-                                padding: 2,
-                                fontSize: 12,
-                                fontWeight: 400,
-                              }}
-                              variant="contained"
-                            >
-                              Decline
-                            </Button>
-                          </div>
+                         call.caller === User._id ? "You are calling" :  <div className="flex items-start gap-1 flex-col">
+                         <Button
+                           style={{
+                             padding: 2,
+                             fontSize: 12,
+                             fontWeight: 400,
+                           }}
+                           variant="contained"
+                           onClick={() => answerCall(call._id, call.caller)}
+                         >
+                           Answer
+                         </Button>
+                         <Button
+                           style={{
+                             padding: 2,
+                             fontSize: 12,
+                             fontWeight: 400,
+                           }}
+                           variant="contained"
+                         >
+                           Decline
+                         </Button>
+                       </div>
                         )}
                       </div>
                     </div>
