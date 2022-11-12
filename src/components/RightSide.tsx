@@ -2,17 +2,14 @@ import {
   AccountCircleOutlined,
   ArrowDownward,
   ArrowUpward,
-  Circle,
   Close,
   Comment,
   Delete,
-  HeartBroken,
   ThumbDown,
   ThumbUp,
 } from "@mui/icons-material";
 import {
   Alert,
-  Backdrop,
   Button,
   CircularProgress,
   IconButton,
@@ -110,7 +107,7 @@ function RightSide() {
     const images: string[] = [];
     const loopInsideFiles = (): boolean | void => {
       let gotError = false;
-      files.map((file) => {
+      files.forEach((file) => {
         if (!file.type.includes("image")) {
           setError("only images allowed");
           setSpier(!spyier);
@@ -419,6 +416,7 @@ function RightSide() {
                     {post.images.map((preview, index) => {
                       return (
                         <img
+                        alt="post"
                           src={preview}
                           key={index}
                           className="min-w-full h-full"

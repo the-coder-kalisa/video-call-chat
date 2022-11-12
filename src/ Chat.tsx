@@ -10,18 +10,29 @@ import {
 } from "@mui/icons-material";
 import { Backdrop, Button, IconButton } from "@mui/material";
 import Picker, { EmojiClickData } from "emoji-picker-react";
-import React, { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { useRecoilState, useRecoilValue, useSetRecoilState } from "recoil";
+import { useRecoilValue, useSetRecoilState } from "recoil";
 import { selectedNav, user, Users } from "./atom";
 import Navigation from "./components/Navigation";
 import { User } from "./types";
 import socket from "./axios";
-import Peer from "simple-peer";
+import Peer, { SignalData } from "simple-peer";
 function Chat() {
   const setSelectedNav = useSetRecoilState(selectedNav);
   const users = useRecoilValue(Users);
-  const [User, setUser] = useRecoilState<User>(user);
+  const User = useRecoilValue<User>(user);
+  interface Call {
+    caller: string;
+    receive?: string;
+    duration?: string;
+    missed: boolean;
+    joins?: string[];
+    calledAt: string;
+    room: string;
+    _id: string;
+  }
+  const [calls, setCalls] = useState<Call[]>([]);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const handleEmojiPicker = () => {
     setShowEmojiPicker(!showEmojiPicker);
@@ -29,7 +40,17 @@ function Chat() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   useEffect(() => {
     setSelectedNav("message");
-  }, []);
+    if (User._id) {
+      socket.emit("get-calls", User._id, (calls: Call[]) => {
+        let somecalls = calls.map((call) =>
+          !call.duration
+            ? { ...call, missed: true }
+            : { ...call, missed: false }
+        );
+        setCalls([...somecalls]);
+      });
+    }
+  }, [User._id]);
   const [room, setRoom] = useState<string>("");
   const order_ids = (id1: string, id2: string): string => {
     let room = id1 > id2 ? `${id1}-${id2}` : `${id2}-${id1}`;
@@ -103,50 +124,27 @@ function Chat() {
   const userVideo = useRef<HTMLVideoElement | null>(null);
   const [open, setOpen] = useState<boolean>(false);
   const connnectionRef = useRef<Peer.Instance | null>(null);
-  const [call, setCall] = useState<
-    {
-      _id: string;
-      isRecieved: boolean;
-      from: string;
-      signal: any;
-    }[]
-  >([]);
   const callerVideo = useRef<HTMLVideoElement | null>(null);
-  const findIndexinUsers = (id: string) => {
-    let someUsers: User[] = [...users];
-    return someUsers.findIndex((value) => value._id === id);
-  };
+  const [currentCalls, setCurrentCalls] = useState<
+    { signal: SignalData | string; callId: string }[]
+  >([]);
   socket
     .off("calling-room")
     .on(
       "calling-room",
-      ({
-        user,
-        from,
-        signal,
-        _id,
-      }: {
-        user: User;
-        from: string;
-        signal: any;
-        _id: string;
-      }) => {
+      (data: { newCall: Call; signal: SignalData | string }) => {
         setCallEnded(false);
-        let user1index = findIndexinUsers(from!);
-        if (user._id === User._id) {
-          setUser(user);
-        }
-        let user1: User = users[user1index];
-        document.title =
-          user1._id === User._id
-            ? user1.username + " is calling you"
-            : "you're calling";
-        setCall([...call, { isRecieved: true, from, signal, _id }]);
+        setCalls([{ ...data.newCall, missed: false }, ...calls]);
+        setCurrentCalls([
+          ...currentCalls,
+          { signal: data.signal, callId: data.newCall._id },
+        ]);
+        setCurrentCallId(data.newCall._id);
       }
     );
-  var [firstTime, setFirstTime] = useState<number>(0);
-  const [stopCounting, setStopCounting] = useState<boolean>(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const [currentCallId, setCurrentCallId] = useState<string>();
+  const [duration, setDuration] = useState<number>(0);
   const goToVideoCall = () => {
     setOpen(true);
     navigator.mediaDevices
@@ -159,51 +157,74 @@ function Chat() {
           setStream(stream);
           callerVideo.current.srcObject = stream;
           peer.on("signal", (data) => {
-            socket.emit("call-user", {
-              userToCall: selectedUser?._id,
-              signalData: data,
-              from: User._id,
-            });
+            socket.emit(
+              "call-user",
+              {
+                userToCall: selectedUser?._id,
+                signalData: data,
+                room: order_ids(User._id!, selectedUser?._id!),
+                from: User._id,
+              },
+              (callId: string) => {
+                setCurrentCallId(callId);
+                setTimeout(() => {
+                  if (!callAccepted) {
+                    console.log("call-not-accepted");
+                    socket.emit("missed-call", {
+                      callId,
+                      from: contact || selectedUser?._id,
+                      to: User._id,
+                    });
+                  }
+                }, 60000);
+              }
+            );
           });
           peer.on("stream", (currentStream) => {
-            console.log(currentStream);
             if (userVideo.current) {
               userVideo.current.srcObject = currentStream;
             }
           });
-          // let stop = false;
-          // if (!stopCounting || !  stop) {
-          //   setInterval(() => {
-          //     console.log(!stop)
-          //     if (!stop || !stopCounting) {
-          //       firstTime++;
-          //       setFirstTime(firstTime);
-          //     }
-          //   }, 1000);
-          // } else {
-          //   setFirstTime(0);
-          // }
-          socket.on("call-accepted", (signal) => {
-            console.log(signal);
-            // stop = true;
-            // setStopCounting(true);
-            // setCallEnded(false);
+
+          socket.on("call-accepted", ({ signal, updatedCall }) => {
+            console.log(updatedCall);
             setCallAppected(true);
-            // setOnCall(true);
             peer.signal(signal);
             if (connnectionRef.current) connnectionRef.current = peer;
           });
         }
       });
   };
+  socket.off("call-missed").on("call-missed", (callId: string) => {
+    setCallEnded(true);
+    setCallAppected(false);
+    setStream(null);
+    setOpen(false);
+    if (connnectionRef.current) connnectionRef.current.destroy();
+    if (userVideo.current) userVideo.current.srcObject = null;
+    if (callerVideo.current) callerVideo.current.srcObject = null;
+    setCalls((calls: Call[]) => {
+      let someCalls = [...calls];
+      let index = someCalls.findIndex((value) => value._id === callId);
+      someCalls[index].missed = true;
+      return someCalls;
+    });
+  });
   const [callAccepted, setCallAppected] = useState<boolean>(false);
   const [callEnded, setCallEnded] = useState<boolean>(false);
   socket.off("immed-hang-up").on("immed-hang-up", (data) => {
     console.log(data);
   });
   useEffect(() => {
-    console.log(firstTime);
-  }, [firstTime]);
+    if (callAccepted) {
+      setInterval(() => {
+        setDuration((duration) => duration + 1);
+      }, 1000);
+    } else {
+      setDuration(0);
+    }
+  }, [callAccepted]);
+
   const [contact, setContact] = useState<string | null>(null);
   const answerCall = (id: string, from: string) => {
     setOpen(true);
@@ -213,49 +234,102 @@ function Chat() {
     navigator.mediaDevices
       .getUserMedia({ audio: true, video: true })
       .then((stream) => {
-        console.log(stream);
         if (callerVideo.current) {
           callerVideo.current.srcObject = stream;
         }
         setStream(stream);
         const peer = new Peer({ initiator: false, trickle: false, stream });
         peer.on("signal", (data) => {
-          socket.emit("answer-call", { signal: data, to: from });
+          socket.emit("answer-call", { signal: data, to: from, callId: id });
           setOnCall(true);
         });
         peer.on("stream", (currentStream) => {
           if (userVideo.current) userVideo.current.srcObject = currentStream;
         });
-        peer.signal(call?.find((value) => value._id === id)?.signal);
+        peer.signal(
+          currentCalls?.find((value) => value.callId === id)?.signal!
+        );
         if (connnectionRef.current) connnectionRef.current = peer;
       });
   };
   const [onCall, setOnCall] = useState<boolean>(false);
-  socket.off("call-ended").on("call-ended", () => {
+  socket.off("call-ended").on("call-ended", (updatedCall: Call) => {
     setOpen(false);
+    setCallEnded(true);
+    console.log(updatedCall);
     stream?.getTracks().forEach((track) => track.stop());
     if (connnectionRef.current) connnectionRef.current.destroy();
+    // updated call inside the call array
+    setCalls((calls: Call[]) => {
+      let someCalls = [...calls];
+      let index = calls.findIndex((value) => value._id === updatedCall._id);
+      someCalls[index] = updatedCall;
+      return someCalls;
+    });
   });
   const leaveCall = () => {
-    setCallEnded(true);
     setOpen(false);
+    setCallAppected(false);
     stream?.getTracks().forEach((track) => track.stop());
     if (connnectionRef.current) connnectionRef.current.destroy();
-    if (!contact) {
-      socket.emit("ended-call", { to: selectedUser?._id });
-    } else {
-      socket.emit("ended-call", { to: contact });
-    }
-    setCallEnded(false);
+    socket.emit(
+      "end-call",
+      {
+        room: order_ids(contact || selectedUser?._id!, User._id!),
+        duration,
+        from: User!._id,
+        to: contact || selectedUser?._id!,
+        callId: currentCallId,
+      },
+      () => {
+        setCallEnded(true);
+      }
+    );
   };
   const hangup = (id: string, from: string) => {
     socket.emit("immed-hang-up", from);
+  };
+  function convertHMS(value: string) {
+    const sec = parseInt(value, 10); // convert value to number if it's string
+    let hours: any = Math.floor(sec / 3600); // get hours
+    let minutes: any = Math.floor((sec - hours * 3600) / 60); // get minutes
+    let seconds: any = sec - hours * 3600 - minutes * 60; //  get seconds
+    // add 0 if value < 10; Example: 2 => 02
+    if (hours < 10) {
+      hours = "0" + hours;
+    }
+    if (minutes < 10) {
+      minutes = "0" + minutes;
+    }
+    if (seconds < 10) {
+      seconds = "0" + seconds;
+    }
+    return hours + ":" + minutes + ":" + seconds; // Return is HH : MM : SS
+  }
+  const getDiff = (date: string): string => {
+    const now = new Date() as unknown as number;
+    const then = new Date(date) as unknown as number;
+    const diff = now - then;
+    const diffInSec = diff / 1000;
+    const seconds = Math.floor(diffInSec % 60);
+    const minutes = Math.floor(diffInSec / 60) % 60;
+    const hours = Math.floor(diffInSec / 3600);
+    const days = Math.floor(diffInSec / 3600 / 24);
+    if (days > 0) {
+      return `${days}d`;
+    } else if (hours > 0) {
+      return `${hours}h`;
+    } else if (minutes > 0) {
+      return `${minutes}m`;
+    } else {
+      return `${seconds}s`;
+    }
   };
   return (
     <div>
       <Navigation />
       <Backdrop
-        className="z-50 relative flex items-center justify-center"
+        className="z-50 relative bg-[#00000085] flex items-center justify-center"
         open={open}
       >
         <div
@@ -264,7 +338,6 @@ function Chat() {
               leaveCall();
             } else {
               setCallEnded(true);
-              setStopCounting(true);
               setOpen(false);
               stream?.getTracks().forEach((track) => track.stop());
               if (connnectionRef.current) connnectionRef.current.destroy();
@@ -283,7 +356,6 @@ function Chat() {
               onClick={() => {
                 setCallEnded(true);
                 setOpen(false);
-                setStopCounting(true);
                 stream?.getTracks().forEach((track) => track.stop());
                 if (connnectionRef.current) connnectionRef.current.destroy();
               }}
@@ -295,6 +367,9 @@ function Chat() {
           </div>
         ) : !callEnded ? (
           <div className="flex flex-col items-center gap-3">
+            <div className="font-bold text-2xl text-white">
+              {convertHMS(duration.toString())}
+            </div>
             <video
               ref={userVideo}
               className="w-[70rem]"
@@ -318,52 +393,95 @@ function Chat() {
       <div className="flex pl-20 pt-[10rem] h-[52rem] justify-center">
         <div className="flex border w-[20rem] flex-col">
           <div className="border-b  p-5 text-lg font-bold">calls</div>
-          {User.calls && User.calls.length > 0 && (
+          {calls.length > 0 && (
             <div className="flex flex-col overflow-auto p-2 gap-4">
-              {User.calls.map((call, index) => {
-                let userToIndex = findIndexinUsers(call.to);
-                let user: User | undefined =
-                  call.from !== User._id ? User : users[userToIndex];
+              {calls.map((call) => {
+                let userTouse = users.find(
+                  (user: User) => user._id !== User._id
+                ) as unknown as User;
+                let date = new Date();
                 return (
-                  user && (
-                    <div
-                      key={index}
-                      className="flex w-full justify-between items-center"
-                    >
-                      <div className="flex items-center gap-1">
+                  <div
+                    key={call._id}
+                    className="flex justify-between items-center"
+                  >
+                    <div className="flex items-center">
+                      {userTouse.profile === "icon" ? (
+                        <AccountCircleOutlined
+                          style={{ width: 45, height: 45 }}
+                        />
+                      ) : (
                         <div
-                          style={{ backgroundImage: `url(${user.profile})` }}
-                          className="h-[3rem] rounded-full w-[3rem] bg-cover bg-top"
+                          style={{ background: `url("${userTouse.profile})` }}
                         ></div>
-                        <div className="flex flex-col gap-1">
-                          <div className="font-bold text-lg">
-                            {user.username}
-                          </div>
-                          {call.time ? (
-                            <div>your call lasted{call.time}</div>
+                      )}
+                      <div className="flex flex-col">
+                        <div className="font-semibold">
+                          {call.caller === User._id ? (
+                            call.duration ? (
+                              <div>
+                                you called{" "}
+                                <Link to={`/profile/${userTouse.username}`}>
+                                  {userTouse.username}
+                                </Link>{" "}
+                              </div>
+                            ) : (
+                              <div>
+                                <Link to={`/profile/${userTouse.username}`}>
+                                  {userTouse.username}
+                                </Link>{" "}
+                                missed your call
+                              </div>
+                            )
+                          ) : call.duration ? (
+                            <div>
+                              <Link to={`/profile/${userTouse.username}`}>
+                                {userTouse.username}
+                              </Link>{" "}
+                              called you
+                            </div>
                           ) : (
-                            <div>is calling you</div>
+                            <div>
+                              you missed call from{" "}
+                              <Link to={`/profile/${userTouse.username}`}>
+                                {userTouse.username}
+                              </Link>
+                            </div>
                           )}
                         </div>
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <Button
-                          onClick={() => answerCall(call._id, call.from)}
-                          variant="contained"
-                          className=""
-                        >
-                          Answer
-                        </Button>
-                        <Button
-                          onClick={() => hangup(call._id, call.from)}
-                          variant="contained"
-                          className=""
-                        >
-                          Hung up
-                        </Button>
+                        {call.duration ? (
+                          <div>{convertHMS(call.duration)}</div>
+                        ) : call.missed ? (
+                          <div>missed</div>
+                        ) : (
+                          <div className="flex items-start gap-1 flex-col">
+                            <Button
+                              style={{
+                                padding: 2,
+                                fontSize: 12,
+                                fontWeight: 400,
+                              }}
+                              variant="contained"
+                              onClick={() => answerCall(call._id, call.caller)}
+                            >
+                              Answer
+                            </Button>
+                            <Button
+                              style={{
+                                padding: 2,
+                                fontSize: 12,
+                                fontWeight: 400,
+                              }}
+                              variant="contained"
+                            >
+                              Decline
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  )
+                    <div>{getDiff(call.calledAt)}</div>
+                  </div>
                 );
               })}
             </div>
@@ -530,26 +648,33 @@ function Chat() {
                               }`}
                               key={index}
                             >
-                              <div className="flex border max-w-[23rem] break-words p-2 rounded-md flex-col">
+                              <div className="flex max-w-[23rem] gap-1 flex-col text-lg break-words">
                                 {sender!._id !== User._id && (
                                   <Link
                                     to={`/profile/${sender!.username}`}
-                                    className="flex border-b items-center"
+                                    className="items-center gap-1 flex"
                                   >
-                                    <div
-                                      className="bg-top bg-cover h-[1.5rem] w-[1.5rem] rounded-full"
-                                      style={{
-                                        backgroundImage: `url(${
-                                          sender!.profile
-                                        })`,
-                                      }}
-                                    ></div>
-                                    <div className="font-semibold text-lg">
+                                    {sender!.profile !== "icon" ? (
+                                      <div
+                                        style={{
+                                          background: `url("${
+                                            sender!.profile
+                                          }")`,
+                                        }}
+                                      ></div>
+                                    ) : (
+                                      <AccountCircleOutlined
+                                        sx={{ height: 30, width: 30 }}
+                                      />
+                                    )}
+                                    <div className="font-semibold">
                                       {sender!.username}
                                     </div>
                                   </Link>
                                 )}
-                                <div className="">{message.message}</div>
+                                <div className="rounded-md border py-1 px-2">
+                                  {message.message}
+                                </div>
                               </div>
                             </div>
                           );
