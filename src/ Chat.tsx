@@ -212,9 +212,6 @@ function Chat() {
   });
   const [callAccepted, setCallAppected] = useState<boolean>(false);
   const [callEnded, setCallEnded] = useState<boolean>(false);
-  socket.off("immed-hang-up").on("immed-hang-up", (data) => {
-    console.log(data);
-  });
   useEffect(() => {
     if (callAccepted) {
       setInterval(() => {
@@ -286,8 +283,8 @@ function Chat() {
       }
     );
   };
-  const hangup = (id: string, from: string) => {
-    socket.emit("immed-hang-up", from);
+  const decline = (id: string, from: string, to: string) => {
+    socket.emit("decline", { from, callId: id, to });
   };
   function convertHMS(value: string) {
     const sec = parseInt(value, 10); // convert value to number if it's string
@@ -453,30 +450,35 @@ function Chat() {
                           <div>{convertHMS(call.duration)}</div>
                         ) : call.missed ? (
                           <div>missed</div>
+                        ) : call.caller === User._id ? (
+                          "You are calling"
                         ) : (
-                         call.caller === User._id ? "You are calling" :  <div className="flex items-start gap-1 flex-col">
-                         <Button
-                           style={{
-                             padding: 2,
-                             fontSize: 12,
-                             fontWeight: 400,
-                           }}
-                           variant="contained"
-                           onClick={() => answerCall(call._id, call.caller)}
-                         >
-                           Answer
-                         </Button>
-                         <Button
-                           style={{
-                             padding: 2,
-                             fontSize: 12,
-                             fontWeight: 400,
-                           }}
-                           variant="contained"
-                         >
-                           Decline
-                         </Button>
-                       </div>
+                          <div className="flex items-start gap-1 flex-col">
+                            <Button
+                              style={{
+                                padding: 2,
+                                fontSize: 12,
+                                fontWeight: 400,
+                              }}
+                              variant="contained"
+                              onClick={() => answerCall(call._id, call.caller)}
+                            >
+                              Answer
+                            </Button>
+                            <Button
+                              style={{
+                                padding: 2,
+                                fontSize: 12,
+                                fontWeight: 400,
+                              }}
+                              variant="contained"
+                              onClick={(): void =>
+                                decline(call._id, call.caller, call.receive!)
+                              }
+                            >
+                              Decline
+                            </Button>
+                          </div>
                         )}
                       </div>
                     </div>
