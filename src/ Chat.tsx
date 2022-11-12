@@ -42,12 +42,7 @@ function Chat() {
     setSelectedNav("message");
     if (User._id) {
       socket.emit("get-calls", User._id, (calls: Call[]) => {
-        let somecalls = calls.map((call) =>
-          !call.duration
-            ? { ...call, missed: true }
-            : { ...call, missed: false }
-        );
-        setCalls([...somecalls]);
+        setCalls([...calls]);
       });
     }
   }, [User._id]);
@@ -284,7 +279,7 @@ function Chat() {
     );
   };
   const decline = (id: string, from: string, to: string) => {
-    socket.emit("decline", { from, callId: id, to });
+    socket.emit("missed-call", { from, callId: id, to });
   };
   function convertHMS(value: string) {
     const sec = parseInt(value, 10); // convert value to number if it's string
