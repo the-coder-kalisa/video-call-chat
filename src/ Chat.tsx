@@ -394,7 +394,9 @@ function Chat() {
             <div className="flex flex-col overflow-auto p-2 gap-4">
               {calls.map((call) => {
                 let userTouse = users.find(
-                  (user: User) => user._id !== User._id
+                  (user: User) =>
+                    user._id !== User._id &&
+                    (call.caller === user._id || call.receive === user._id)
                 ) as unknown as User;
                 let date = new Date();
                 return (
