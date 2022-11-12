@@ -1,4 +1,3 @@
 import { io } from "socket.io-client";
-// https://video-callf.herokuapp.com
-export const baseURL = "http://localhost:3547";
+export const baseURL = "https://video-callf.herokuapp.com";
 export default io(baseURL);
