@@ -164,7 +164,6 @@ function Chat() {
                 setCurrentCallId(callId);
                 setTimeout(() => {
                   if (!callAccepted) {
-                    console.log("call-not-accepted");
                     socket.emit("missed-call", {
                       callId,
                       from: contact || selectedUser?._id,
@@ -181,12 +180,14 @@ function Chat() {
             }
           });
 
-          socket.on("call-accepted", ({ signal, updatedCall }) => {
-            console.log(updatedCall);
-            setCallAppected(true);
-            peer.signal(signal);
-            if (connnectionRef.current) connnectionRef.current = peer;
-          });
+          socket.on(
+            "call-accepted",
+            (data: { signal: SignalData; updatedCall: Call }) => {
+              setCallAppected(true);
+              peer.signal(data.signal);
+              if (connnectionRef.current) connnectionRef.current = peer;
+            }
+          );
         }
       });
   };
@@ -248,7 +249,6 @@ function Chat() {
   socket.off("call-ended").on("call-ended", (updatedCall: Call) => {
     setOpen(false);
     setCallEnded(true);
-    console.log(updatedCall);
     stream?.getTracks().forEach((track) => track.stop());
     if (connnectionRef.current) connnectionRef.current.destroy();
     // updated call inside the call array
@@ -346,6 +346,7 @@ function Chat() {
             </div>
             <Button
               onClick={() => {
+                decline(currentCallId!, selectedUser?._id!, User._id!);
                 setCallEnded(true);
                 setOpen(false);
                 stream?.getTracks().forEach((track) => track.stop());
@@ -411,36 +412,12 @@ function Chat() {
                       )}
                       <div className="flex flex-col">
                         <div className="font-semibold">
-                          {call.caller === User._id ? (
-                            call.duration ? (
-                              <div>
-                                you called{" "}
-                                <Link to={`/profile/${userTouse.username}`}>
-                                  {userTouse.username}
-                                </Link>{" "}
-                              </div>
-                            ) : (
-                              <div>
-                                <Link to={`/profile/${userTouse.username}`}>
-                                  {userTouse.username}
-                                </Link>{" "}
-                                missed your call
-                              </div>
-                            )
-                          ) : call.duration ? (
-                            <div>
-                              <Link to={`/profile/${userTouse.username}`}>
-                                {userTouse.username}
-                              </Link>{" "}
-                              called you
-                            </div>
+                          {call.duration ? (
+                            <div>You called {userTouse.username}</div>
+                          ) : call.missed ? (
+                            <div>{userTouse.username} missed your call</div>
                           ) : (
-                            <div>
-                              you missed call from{" "}
-                              <Link to={`/profile/${userTouse.username}`}>
-                                {userTouse.username}
-                              </Link>
-                            </div>
+                            <div>you calling {userTouse.username}</div>
                           )}
                         </div>
                         {call.duration ? (
@@ -448,7 +425,7 @@ function Chat() {
                         ) : call.missed ? (
                           <div>missed</div>
                         ) : call.caller === User._id ? (
-                          "You are calling"
+                          "on call"
                         ) : (
                           <div className="flex items-start gap-1 flex-col">
                             <Button
