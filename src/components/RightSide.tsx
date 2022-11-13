@@ -77,7 +77,6 @@ function RightSide() {
       });
     }
   };
-  // const [previewPoster, setPreviewPoster] = useState<boolean>(false);
   const [posts, setPosts] = useState<Post[]>([]);
   const [showPost, setShowPost] = useState<boolean>(false);
 
@@ -102,24 +101,23 @@ function RightSide() {
     setShowCommentss(true);
   });
   const getPost = (e: ChangeEvent<HTMLInputElement>) => {
-    // const files = [...e.target.files!];
-    const files = [{ type: "image" }];
     const images: string[] = [];
     const loopInsideFiles = (): boolean | void => {
       let gotError = false;
-      files.forEach((file) => {
-        if (!file.type.includes("image")) {
-          setError("only images allowed");
+      let files = e.target.files as unknown as MediaStream[];
+      [...files].map((file: any) => {
+        if(!file.type.includes("image")) {
+          setError("onl images allowed");
           setSpier(!spyier);
           gotError = true;
+          images.push(URL.createObjectURL(file))
           return setTimeout(() => setError(null), 5000);
         }
-        // images.push(URL.createObjectURL(file));
       });
-      if (gotError) return;
-      setPreviews(images);
-      // setFilesToUpload([...filesToUpload, ...e.target.files!]);
-      setShowPost(true);
+        if (gotError) return;
+        setPreviews(images);
+      //   // setFilesToUpload([...filesToUpload, ...e.target.files!]);
+        setShowPost(true);
     };
     loopInsideFiles();
   };
@@ -254,6 +252,7 @@ function RightSide() {
       setShowedLess([...showedLess]);
     }
   };
+  console.log(previews);
   return (
     <div className="flex pb-8 flex-col gap-10">
       <div
@@ -416,7 +415,7 @@ function RightSide() {
                     {post.images.map((preview, index) => {
                       return (
                         <img
-                        alt="post"
+                          alt="post"
                           src={preview}
                           key={index}
                           className="min-w-full h-full"
@@ -491,38 +490,29 @@ function RightSide() {
                             id={post._id}
                             className="flex  relative transition-all duration-[800ms] overflow-hidden flex-col gap-5"
                           >
-                            {comments
-                              .filter(
-                                (value) =>
-                                  value._id !==
-                                  comments[comments.length - 1]._id
-                              )
-                              .map((comment, index) => (
-                                <div
-                                  className="flex flex-col gap-2"
-                                  key={index}
+                            {comments.map((comment, index) => (
+                              <div className="flex flex-col gap-2" key={index}>
+                                <Link
+                                  to={`/profile/${comment.poster.username}`}
+                                  className="flex items-center gap-1"
                                 >
-                                  <Link
-                                    to={`/profile/${comment.poster.username}`}
-                                    className="flex items-center gap-1"
-                                  >
-                                    {comment.poster.profile !== "icon" ? (
-                                      <div
-                                        style={{
-                                          backgroundImage: `url(${comment.poster.profile})`,
-                                        }}
-                                        className="h-[3rem] w-[3rem] bg-top rounded-full bg-cover  "
-                                      ></div>
-                                    ) : (
-                                      <AccountCircleOutlined
-                                        style={{ width: 30, height: 30 }}
-                                      />
-                                    )}
-                                    <span>{comment.poster.username}</span>
-                                  </Link>
-                                  <div>{comment.comment}</div>
-                                </div>
-                              ))}
+                                  {comment.poster.profile !== "icon" ? (
+                                    <div
+                                      style={{
+                                        backgroundImage: `url(${comment.poster.profile})`,
+                                      }}
+                                      className="h-[3rem] w-[3rem] bg-top rounded-full bg-cover  "
+                                    ></div>
+                                  ) : (
+                                    <AccountCircleOutlined
+                                      style={{ width: 30, height: 30 }}
+                                    />
+                                  )}
+                                  <span>{comment.poster.username}</span>
+                                </Link>
+                                <div>{comment.comment}</div>
+                              </div>
+                            ))}
                             {loaders.length > 0 &&
                               loaders[
                                 posts.findIndex(
