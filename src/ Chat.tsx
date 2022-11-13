@@ -413,18 +413,33 @@ function Chat() {
                       <div className="flex flex-col">
                         <div className="font-semibold">
                           {call.duration ? (
-                            <div>You called {userTouse.username}</div>
+                            call.caller === User._id ? (
+                              <div>You called {userTouse.username}</div>
+                            ) : (
+                              <div>{userTouse.username} called you</div>
+                            )
                           ) : call.missed ? (
-                            <div>{userTouse.username} missed your call</div>
-                          ) : (
+                            call.caller === User._id ? (
+                              <div>{userTouse.username} missed your call</div>
+                            ) : (
+                              <div>
+                                you missed call from {userTouse.username}
+                              </div>
+                            )
+                          ) : call.caller === User._id ? (
                             <div>you calling {userTouse.username}</div>
+                          ) : (
+                            <div>
+                              You're being called by {userTouse.username}
+                            </div>
                           )}
                         </div>
                         {call.duration ? (
                           <div>{convertHMS(call.duration)}</div>
                         ) : call.missed ? (
                           <div>missed</div>
-                        ) : call.caller === User._id ? (
+                        ) : call.caller === User._id &&
+                          currentCallId === call._id ? (
                           "on call"
                         ) : (
                           <div className="flex items-start gap-1 flex-col">
